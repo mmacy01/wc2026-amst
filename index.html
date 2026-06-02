@@ -1550,10 +1550,122 @@ function tryBracket(){
   if(!pm){if(note)note.style.display='block';if(content)content.style.display='none';return;}
   if(note)note.style.display='none';if(content)content.style.display='block';
   buildR32(pm);
-  buildRound('r16g','r16',8,Object.values(ST.bkt.r32));
-  buildRound('qfg','qf',4,Object.values(ST.bkt.r16));
-  buildRound('sfg','sf',2,Object.values(ST.bkt.qf));
-  buildFinal(Object.values(ST.bkt.sf));
+  buildR16();
+  buildQF();
+  buildSF();
+  buildFinal();
+}
+
+// Official FIFA bracket path:
+// R16-89: W(r32pE) vs W(r32pI)      R16-90: W(m73)    vs W(m75)
+// R16-91: W(m76)   vs W(m78)        R16-92: W(r32pA)  vs W(r32pL)
+// R16-93: W(m83)   vs W(m84)        R16-94: W(r32pD)  vs W(r32pG)
+// R16-95: W(m86)   vs W(m88)        R16-96: W(r32pB)  vs W(r32pK)
+// QF-97: W(R16-89) vs W(R16-90)     QF-98: W(R16-93)  vs W(R16-94)
+// QF-99: W(R16-91) vs W(R16-92)     QF-100: W(R16-95) vs W(R16-96)
+// SF-101: W(QF-97) vs W(QF-98)      SF-102: W(QF-99)  vs W(QF-100)
+// Final: W(SF-101) vs W(SF-102)
+
+var R16_PAIRS=[
+  {id:'r16m1',a:'r32pE',b:'r32pI'},
+  {id:'r16m2',a:'m73',  b:'m75'},
+  {id:'r16m3',a:'m76',  b:'m78'},
+  {id:'r16m4',a:'r32pA',b:'r32pL'},
+  {id:'r16m5',a:'m83',  b:'m84'},
+  {id:'r16m6',a:'r32pD',b:'r32pG'},
+  {id:'r16m7',a:'m86',  b:'m88'},
+  {id:'r16m8',a:'r32pB',b:'r32pK'}
+];
+var QF_PAIRS=[
+  {id:'qfm1',a:'r16m1',b:'r16m2'},
+  {id:'qfm2',a:'r16m5',b:'r16m6'},
+  {id:'qfm3',a:'r16m3',b:'r16m4'},
+  {id:'qfm4',a:'r16m7',b:'r16m8'}
+];
+var SF_PAIRS=[
+  {id:'sfm1',a:'qfm1',b:'qfm2'},
+  {id:'sfm2',a:'qfm3',b:'qfm4'}
+];
+
+function buildR16(){
+  var cont=document.getElementById('r16g');
+  if(!cont)return;
+  cont.innerHTML='';
+  R16_PAIRS.forEach(function(pair){
+    var tA=ST.bkt.r32[pair.a]||null;
+    var tB=ST.bkt.r32[pair.b]||null;
+    var w=ST.bkt.r16[pair.id]||null;
+    var tbd=!tA||!tB;
+    var div=document.createElement('div');
+    div.className='rmc';
+    div.innerHTML=
+      '<div class="mc-team'+(tbd?' tbd':'')+(w===tA?' win':'')+'">'+
+        (tbd?'TBD':tA+(w===tA?' ✓':''))+'</div>'+
+      '<div class="mc-team'+(tbd?' tbd':'')+(w===tB?' win':'')+'">'+
+        (tbd?'TBD':tB+(w===tB?' ✓':''))+'</div>';
+    if(!tbd){
+      (function(pid,rk,ta,tb){
+        var rows=div.querySelectorAll('.mc-team');
+        rows[0].onclick=function(){pickWinner(rk,pid,ta);};
+        rows[1].onclick=function(){pickWinner(rk,pid,tb);};
+      })(pair.id,'r16',tA,tB);
+    }
+    cont.appendChild(div);
+  });
+}
+
+function buildQF(){
+  var cont=document.getElementById('qfg');
+  if(!cont)return;
+  cont.innerHTML='';
+  QF_PAIRS.forEach(function(pair){
+    var tA=ST.bkt.r16[pair.a]||null;
+    var tB=ST.bkt.r16[pair.b]||null;
+    var w=ST.bkt.qf[pair.id]||null;
+    var tbd=!tA||!tB;
+    var div=document.createElement('div');
+    div.className='rmc';
+    div.innerHTML=
+      '<div class="mc-team'+(tbd?' tbd':'')+(w===tA?' win':'')+'">'+
+        (tbd?'TBD':tA+(w===tA?' ✓':''))+'</div>'+
+      '<div class="mc-team'+(tbd?' tbd':'')+(w===tB?' win':'')+'">'+
+        (tbd?'TBD':tB+(w===tB?' ✓':''))+'</div>';
+    if(!tbd){
+      (function(pid,rk,ta,tb){
+        var rows=div.querySelectorAll('.mc-team');
+        rows[0].onclick=function(){pickWinner(rk,pid,ta);};
+        rows[1].onclick=function(){pickWinner(rk,pid,tb);};
+      })(pair.id,'qf',tA,tB);
+    }
+    cont.appendChild(div);
+  });
+}
+
+function buildSF(){
+  var cont=document.getElementById('sfg');
+  if(!cont)return;
+  cont.innerHTML='';
+  SF_PAIRS.forEach(function(pair){
+    var tA=ST.bkt.qf[pair.a]||null;
+    var tB=ST.bkt.qf[pair.b]||null;
+    var w=ST.bkt.sf[pair.id]||null;
+    var tbd=!tA||!tB;
+    var div=document.createElement('div');
+    div.className='rmc';
+    div.innerHTML=
+      '<div class="mc-team'+(tbd?' tbd':'')+(w===tA?' win':'')+'">'+
+        (tbd?'TBD':tA+(w===tA?' ✓':''))+'</div>'+
+      '<div class="mc-team'+(tbd?' tbd':'')+(w===tB?' win':'')+'">'+
+        (tbd?'TBD':tB+(w===tB?' ✓':''))+'</div>';
+    if(!tbd){
+      (function(pid,rk,ta,tb){
+        var rows=div.querySelectorAll('.mc-team');
+        rows[0].onclick=function(){pickWinner(rk,pid,ta);};
+        rows[1].onclick=function(){pickWinner(rk,pid,tb);};
+      })(pair.id,'sf',tA,tB);
+    }
+    cont.appendChild(div);
+  });
 }
 
 function buildR32(pm){
@@ -1598,10 +1710,12 @@ function buildRound(contId,rndKey,count,prevWinners){
   }
 }
 
-function buildFinal(sfW){
+function buildFinal(){
   var cont=document.getElementById('finalg');var chDiv=document.getElementById('champshow');
   if(!cont)return;cont.innerHTML='';
-  var tA=sfW[0]||null;var tB=sfW[1]||null;var champ=ST.bkt.champ;var tbd=!tA||!tB;
+  var tA=ST.bkt.sf['sfm1']||null;
+  var tB=ST.bkt.sf['sfm2']||null;
+  var champ=ST.bkt.champ;var tbd=!tA||!tB;
   var div=document.createElement('div');div.className='rmc final-card';
   div.innerHTML='<div class="final-hdr">🏆 THE FINAL</div>'+
     '<div class="mc-team'+(tbd?' tbd':'')+(champ===tA?' win':'')+'">'+
@@ -1622,7 +1736,40 @@ function buildFinal(sfW){
 function pickWinner(rnd,mid,name){
   if(!name) return;
   ST.bkt[rnd][mid]=name;
+  // Cascade: clear picks in later rounds that depended on this match
+  cascadeClear(rnd,mid);
   tryBracket();updateProg();autosave();
+}
+
+function cascadeClear(rnd,mid){
+  // If a R32 pick changes, find which R16 match uses it and clear downstream
+  if(rnd==='r32'){
+    R16_PAIRS.forEach(function(p){
+      if(p.a===mid||p.b===mid){
+        var prev=ST.bkt.r16[p.id];
+        delete ST.bkt.r16[p.id];
+        if(prev) cascadeClear('r16',p.id);
+      }
+    });
+  }
+  if(rnd==='r16'){
+    QF_PAIRS.forEach(function(p){
+      if(p.a===mid||p.b===mid){
+        var prev=ST.bkt.qf[p.id];
+        delete ST.bkt.qf[p.id];
+        if(prev) cascadeClear('qf',p.id);
+      }
+    });
+  }
+  if(rnd==='qf'){
+    SF_PAIRS.forEach(function(p){
+      if(p.a===mid||p.b===mid){
+        delete ST.bkt.sf[p.id];
+        ST.bkt.champ=null;
+      }
+    });
+  }
+  if(rnd==='sf') ST.bkt.champ=null;
 }
 
 function pickChamp(name){
