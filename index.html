@@ -635,6 +635,7 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
         <div><div class="rcol-title" style="color:#3C3B6E;border-color:#3C3B6E">Round of 16</div><div id="r16g"></div></div>
         <div><div class="rcol-title" style="color:var(--mex-green);border-color:var(--mex-green)">Quarterfinals</div><div id="qfg"></div></div>
         <div><div class="rcol-title" style="color:var(--can-red);border-color:var(--can-red)">Semifinals</div><div id="sfg"></div></div>
+        <div><div class="rcol-title" style="color:var(--bronze);border-color:var(--bronze)">🥉 3rd Place</div><div id="thirdg"></div></div>
         <div><div class="rcol-title">🏆 Final &amp; Champion</div><div id="finalg"></div><div class="champ-display" id="champshow"></div></div>
       </div>
     </div>
@@ -677,6 +678,7 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
     <div class="sccard"><div class="scpts">7</div><div class="sclbl">Quarterfinal Winner<br><span style="font-size:10px;color:#bbb">×4 matches = 28 pts</span></div></div>
     <div class="sccard"><div class="scpts">10</div><div class="sclbl">Semifinal Winner<br><span style="font-size:10px;color:#bbb">×2 matches = 20 pts</span></div></div>
     <div class="sccard"><div class="scpts">15</div><div class="sclbl">Final Winner<br><span style="font-size:10px;color:#bbb">×1 match = 15 pts</span></div></div>
+    <div class="sccard" style="border-color:var(--bronze);background:#fff8e8"><div class="scpts" style="color:var(--bronze)">8</div><div class="sclbl" style="color:var(--bronze)">3rd Place Match<br><span style="font-size:10px;color:#bbb">July 18 Miami</span></div></div>
     <div class="sccard bonus"><div class="scpts" style="color:var(--black)">+10</div><div class="sclbl" style="color:var(--black)">⭐ Exact Champion Bonus<br><span style="font-size:10px">If your champion wins!</span></div></div>
   </div>
   <div class="maxbox">
@@ -689,8 +691,9 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
       <div class="maxitem"><span class="n">28</span> <span class="l">QF</span></div>
       <div class="maxitem"><span class="n">20</span> <span class="l">SF</span></div>
       <div class="maxitem"><span class="n">15</span> <span class="l">Final</span></div>
+      <div class="maxitem"><span class="n">8</span> <span class="l">3rd Place</span></div>
       <div class="maxitem"><span class="n">+10</span> <span class="l">Bonus</span></div>
-      <div class="maxitem"><span class="maxtotal">189</span> <span class="l" style="font-size:15px;color:var(--gold)">pts max</span></div>
+      <div class="maxitem"><span class="maxtotal">197</span> <span class="l" style="font-size:15px;color:var(--gold)">pts max</span></div>
     </div>
   </div>
   <div style="background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:16px;font-size:13px;color:var(--muted);line-height:2.2">
@@ -748,6 +751,10 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
   <div style="background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px">
     <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">Semifinal Winners (10pts each)</div>
     <div class="resgrid" id="ressf"></div>
+  </div>
+  <div style="background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px">
+    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">3rd Place Match Winner (8pts)</div>
+    <div class="resfield" style="max-width:280px"><label>3rd Place Winner</label><input type="text" id="resthird" placeholder="Team name..."></div>
   </div>
   <div style="background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px">
     <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">Champion (15pts + 10 bonus)</div>
@@ -1397,7 +1404,7 @@ const FIXED=[
   {id:'m86',a:'1J',b:'2H', lbl:'1J vs 2H'},
   {id:'m88',a:'2D',b:'2G', lbl:'2D vs 2G'}
 ];
-var ST={name:'',gr:{},t3:{},bkt:{r32:{},r16:{},qf:{},sf:{},champ:null}};
+var ST={name:'',gr:{},t3:{},bkt:{r32:{},r16:{},qf:{},sf:{},third:null,champ:null}};
 GK.forEach(function(g){ST.gr[g]={};ST.t3[g]=null;});
 
 window.onload=function(){buildGroups();buildThird();buildAdminUI();loadDraft();updateProg();initFirebase();};
@@ -1513,6 +1520,7 @@ function updateProg(){
   });
   var t3v=T3_GROUPS.map(function(g){return ST.t3[g];}).filter(function(v){return v!==null;});
   if(t3v.length===8&&new Set(t3v).size===8) done++;
+  if(ST.bkt.third) done++;
   if(ST.bkt.champ) done++;
   var pct=Math.round(done/14*100);
   var bar=document.getElementById('progbar');var lbl=document.getElementById('proglbl');
@@ -1553,6 +1561,7 @@ function tryBracket(){
   buildR16();
   buildQF();
   buildSF();
+  buildThirdPlace();
   buildFinal();
 }
 
@@ -1710,6 +1719,61 @@ function buildRound(contId,rndKey,count,prevWinners){
   }
 }
 
+function buildThirdPlace(){
+  var cont=document.getElementById('thirdg');
+  if(!cont)return;cont.innerHTML='';
+  // 3rd place game: the two SF losers
+  // We need to know who the SF losers are
+  // SF has 2 matches: sfm1 and sfm2
+  // For each SF match we need both teams - get them from QF winners
+  var qfm1w=ST.bkt.qf['qfm1']||null;
+  var qfm2w=ST.bkt.qf['qfm2']||null;
+  var qfm3w=ST.bkt.qf['qfm3']||null;
+  var qfm4w=ST.bkt.qf['qfm4']||null;
+  // sfm1 = qfm1 winner vs qfm2 winner => loser is whoever sfm1 winner is NOT
+  var sfm1w=ST.bkt.sf['sfm1']||null;
+  var sfm2w=ST.bkt.sf['sfm2']||null;
+  // Determine losers
+  var loser1=null;
+  if(sfm1w&&qfm1w&&qfm2w){ loser1=(sfm1w===qfm1w)?qfm2w:qfm1w; }
+  var loser2=null;
+  if(sfm2w&&qfm3w&&qfm4w){ loser2=(sfm2w===qfm3w)?qfm4w:qfm3w; }
+  var tpw=ST.bkt.third||null;
+  var tbd=!loser1||!loser2;
+  var div=document.createElement('div');
+  div.className='rmc';
+  div.style.borderColor='var(--bronze)';
+  div.innerHTML='<div class="mc-hdr" style="background:#7a4000;color:#fff">3RD PLACE MATCH · July 18</div>'+
+    '<div class="mc-team'+(tbd?' tbd':'')+(tpw===loser1?' win':'')+'">'+
+      (tbd?'TBD':loser1+(tpw===loser1?' 🥉':''))+'</div>'+
+    '<div class="mc-team'+(tbd?' tbd':'')+(tpw===loser2?' win':'')+'">'+
+      (tbd?'TBD':loser2+(tpw===loser2?' 🥉':''))+'</div>';
+  if(!tbd){
+    (function(l1,l2){
+      var rows=div.querySelectorAll('.mc-team');
+      rows[0].onclick=function(){pickThird(l1);};
+      rows[1].onclick=function(){pickThird(l2);};
+    })(loser1,loser2);
+  }
+  cont.appendChild(div);
+  // Show result if picked
+  if(tpw&&!tbd){
+    var resDiv=document.createElement('div');
+    resDiv.style.cssText='text-align:center;margin-top:8px;padding:8px;background:#fff8e8;border:1.5px solid var(--bronze);border-radius:5px;font-family:Bebas Neue,sans-serif;font-size:16px;color:var(--bronze)';
+    resDiv.textContent='3rd Place: '+tpw;
+    cont.appendChild(resDiv);
+  }
+}
+
+function pickThird(name){
+  if(!name) return;
+  ST.bkt.third=name;
+  buildThirdPlace();
+  updateProg();
+  autosave();
+  toast('3rd place pick: '+name);
+}
+
 function buildFinal(){
   var cont=document.getElementById('finalg');var chDiv=document.getElementById('champshow');
   if(!cont)return;cont.innerHTML='';
@@ -1769,7 +1833,7 @@ function cascadeClear(rnd,mid){
       }
     });
   }
-  if(rnd==='sf') ST.bkt.champ=null;
+  if(rnd==='sf'){ ST.bkt.third=null; ST.bkt.champ=null; }
 }
 
 function pickChamp(name){
@@ -1793,6 +1857,7 @@ function loadDraft(){
     if(!ST.gr) ST.gr={};if(!ST.t3) ST.t3={};
     if(!ST.bkt) ST.bkt={r32:{},r16:{},qf:{},sf:{},champ:null};
     ['r32','r16','qf','sf'].forEach(function(k){if(!ST.bkt[k]) ST.bkt[k]={};});
+    if(ST.bkt.third===undefined) ST.bkt.third=null;
     GK.forEach(function(g){if(!ST.gr[g]) ST.gr[g]={};if(ST.t3[g]===undefined) ST.t3[g]=null;});
     var ni=document.getElementById('pname');if(ni&&ST.name) ni.value=ST.name;
     GK.forEach(function(g){
@@ -1914,6 +1979,7 @@ function saveRes(){
     var r={};
     GK.forEach(function(g){var e=document.getElementById('rg-'+g);if(e)r['g'+g]=e.value;});
     for(var i=1;i<=8;i++){var e=document.getElementById('r3-'+i);if(e)r['t'+i]=e.value;}
+    var t=document.getElementById('resthird');if(t)r['tp']=t.value;
     var c=document.getElementById('reschamp');if(c)r['ch']=c.value;
     localStorage.setItem('wc26res',JSON.stringify(r));
     toast('Results saved');
@@ -1927,7 +1993,8 @@ function loadAdmin(){
       var r=JSON.parse(raw);
       GK.forEach(function(g){var e=document.getElementById('rg-'+g);if(e&&r['g'+g])e.value=r['g'+g];});
       for(var i=1;i<=8;i++){var e=document.getElementById('r3-'+i);if(e&&r['t'+i])e.value=r['t'+i];}
-      var c=document.getElementById('reschamp');if(c&&r['ch'])c.value=r['ch'];
+      var t=document.getElementById('resthird');if(t&&r['tp'])t.value=r['tp'];
+    var c=document.getElementById('reschamp');if(c&&r['ch'])c.value=r['ch'];
     }
     var sr=localStorage.getItem('wc26subs');
     if(sr) SUBS=JSON.parse(sr);
@@ -2058,6 +2125,11 @@ function calcScores(){
     // SF winners: 10pts each
     if(s.bkt&&s.bkt.sf) Object.values(s.bkt.sf).forEach(function(team){if(actualSF.indexOf(team.toLowerCase())>=0)score+=10;});
     // Final winner: 15pts + 10 bonus if exact champion
+    // 3rd place match: 8pts
+    var athird=(document.getElementById('resthird')||{}).value||'';
+    athird=athird.trim().toLowerCase();
+    if(athird&&s.bkt&&s.bkt.third&&s.bkt.third.toLowerCase()===athird) score+=8;
+    // Final + champion bonus: 25pts
     if(ach&&s.bkt&&s.bkt.champ&&s.bkt.champ.toLowerCase()===ach){score+=15+10;}
     s.score=score;
     var el=document.getElementById('sc-'+si);if(el)el.innerHTML='<strong>'+score+'</strong>';
@@ -2191,6 +2263,10 @@ function openPlayerModal(idx){
   if(s.bkt&&s.bkt.r16) Object.values(s.bkt.r16).forEach(function(t){if(actualR16.indexOf(t.toLowerCase())>=0)r16Pts+=5;});
   if(s.bkt&&s.bkt.qf)  Object.values(s.bkt.qf).forEach(function(t){if(actualQF.indexOf(t.toLowerCase())>=0)qfPts+=7;});
   if(s.bkt&&s.bkt.sf)  Object.values(s.bkt.sf).forEach(function(t){if(actualSF.indexOf(t.toLowerCase())>=0)sfPts+=10;});
+  var athirdModal=(document.getElementById('resthird')||{}).value||'';
+  athirdModal=athirdModal.trim().toLowerCase();
+  var thirdPts=0;
+  if(athirdModal&&s.bkt&&s.bkt.third&&s.bkt.third.toLowerCase()===athirdModal) thirdPts=8;
   if(ach&&s.bkt&&s.bkt.champ&&s.bkt.champ.toLowerCase()===ach){finalPts=15;bonusPts=10;}
 
   var breakdown=[
@@ -2201,6 +2277,7 @@ function openPlayerModal(idx){
     {lbl:'QF',pts:qfPts,max:28},
     {lbl:'SF',pts:sfPts,max:20},
     {lbl:'Final',pts:finalPts,max:15},
+    {lbl:'3rd Place',pts:thirdPts,max:8},
     {lbl:'Bonus',pts:bonusPts,max:10}
   ];
   var bdHtml='<div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Score Breakdown</div>';
