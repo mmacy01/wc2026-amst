@@ -726,12 +726,45 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
     <span id="autoMsg" style="color:var(--muted);flex:1">Auto-scoring: initializing...</span>
     <button id="autoRefreshBtn" onclick="doAutoScore()" style="background:var(--gold);color:var(--black);border:none;border-radius:4px;padding:4px 10px;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:10px;letter-spacing:1px;cursor:pointer;text-transform:uppercase">Refresh Now</button>
   </div>
-  <div class="stitle">📥 Add Submissions</div>
-  <p class="sdesc">Paste a participant's prediction code and click Add.</p>
-  <textarea class="imparea" id="imparea" rows="3" placeholder="Paste prediction code here..."></textarea>
-  <div class="brow" style="margin-bottom:22px">
-    <button class="btn bgld" onclick="addSub()">+ Add Submission</button>
-    <button class="btn bout bsm" onclick="clearSubs()">🗑 Clear All</button>
+  <div class="stitle">📥 Add / Edit Submissions</div>
+  <p class="sdesc">Manually enter participant picks below. All fields marked with a group letter are for ranking (1st–4th). Champion pick is required for scoring.</p>
+
+  <div style="background:var(--card);border:2px solid var(--gold);border-radius:8px;padding:18px;margin-bottom:18px">
+    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:14px">➕ Add / Update Participant</div>
+
+    <!-- Name -->
+    <div class="resfield" style="margin-bottom:10px;max-width:360px">
+      <label>Participant Name (required)</label>
+      <input type="text" id="meName" placeholder="e.g. John Smith" style="font-size:14px">
+    </div>
+
+    <!-- Champion -->
+    <div class="resfield" style="margin-bottom:14px;max-width:360px">
+      <label>🏆 Champion Pick (required)</label>
+      <input type="text" id="meChamp" placeholder="e.g. Brazil" style="font-size:14px">
+    </div>
+
+    <!-- Group Rankings -->
+    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Group Stage Rankings — Who wins each group?</div>
+    <div class="resgrid" id="meGroupsGrid"></div>
+
+    <!-- 3rd Place -->
+    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:12px 0 8px">3rd Place Qualifiers — Enter group letters of top 8 (e.g. A, B, C...)</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:14px" id="me3rdGrid"></div>
+
+    <!-- Bracket picks summary -->
+    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Knockout Picks (optional — enter team names)</div>
+    <div class="resgrid" id="meKnockoutGrid"></div>
+
+    <div class="brow" style="margin-top:14px">
+      <button class="btn bgld" onclick="manualAddSub()">💾 Save Submission</button>
+      <button class="btn bout bsm" onclick="clearManualForm()">✕ Clear Form</button>
+    </div>
+    <div id="meMsg" style="display:none;margin-top:10px;font-family:Barlow Condensed,sans-serif;font-size:12px;letter-spacing:1px"></div>
+  </div>
+
+  <div class="brow" style="margin-bottom:18px">
+    <button class="btn bout bsm" onclick="clearSubs()">🗑 Clear All Submissions</button>
   </div>
   <table class="subtable" id="subtable" style="display:none">
     <thead><tr><th>#</th><th>Player</th><th>Champion Pick</th><th>Date</th><th>Score</th><th></th></tr></thead>
@@ -2214,6 +2247,149 @@ function updateAutoStatus(state, msg) {
   }
 }
 
+// ── MANUAL SUBMISSION ENTRY ──
+function buildManualEntryUI(){
+  // Group winner dropdowns (one per group)
+  var gg=document.getElementById('meGroupsGrid');
+  if(gg){
+    GK.forEach(function(g){
+      var d=document.createElement('div');d.className='resfield';
+      var teams=GRP[g];
+      var opts='<option value="">-- Pick winner --</option>';
+      teams.forEach(function(t){opts+='<option value="'+t[0]+'">'+t[1]+' '+t[0]+'</option>';});
+      d.innerHTML='<label>Group '+g+' Winner</label><select id="meg-'+g+'" style="width:100%;border:1.5px solid var(--border);border-radius:4px;padding:6px 8px;font-size:13px;background:#fafaf8;outline:none">'+opts+'</select>';
+      gg.appendChild(d);
+    });
+  }
+
+  // 3rd place group letter inputs
+  var tg=document.getElementById('me3rdGrid');
+  if(tg){
+    for(var i=1;i<=8;i++){
+      var d=document.createElement('div');d.className='resfield';
+      d.innerHTML='<label>3rd Place #'+i+'</label><input type="text" id="me3rd-'+i+'" placeholder="Group letter A-L" maxlength="1" style="text-transform:uppercase">';
+      tg.appendChild(d);
+    }
+  }
+
+  // Knockout picks
+  var kg=document.getElementById('meKnockoutGrid');
+  if(kg){
+    var rounds=[
+      {id:'meR32',lbl:'R32 Winner (example pick)'},
+      {id:'meR16',lbl:'R16 Winner (example pick)'},
+      {id:'meQF', lbl:'QF Winner (example pick)'},
+      {id:'meSF', lbl:'SF Winner (example pick)'},
+    ];
+    rounds.forEach(function(r){
+      var d=document.createElement('div');d.className='resfield';
+      d.innerHTML='<label>'+r.lbl+'</label><input type="text" id="'+r.id+'" placeholder="Team name...">';
+      kg.appendChild(d);
+    });
+  }
+}
+
+function manualAddSub(){
+  var name=(document.getElementById('meName')||{}).value||'';
+  var champ=(document.getElementById('meChamp')||{}).value||'';
+  if(!name.trim()){showMeMsg('Enter a participant name','error');return;}
+  if(!champ.trim()){showMeMsg('Enter a champion pick','error');return;}
+
+  // Build gr object from group winner dropdowns
+  var gr={};
+  GK.forEach(function(g){
+    var sel=document.getElementById('meg-'+g);
+    var winnerName=sel?sel.value:'';
+    if(!winnerName) return;
+    gr[g]={};
+    var teams=GRP[g];
+    // Assign ranks: winner=1, others get 2,3,4
+    var rank=1;
+    teams.forEach(function(t){
+      if(t[0]===winnerName){ gr[g][t[0]]=1; }
+    });
+    var r=2;
+    teams.forEach(function(t){
+      if(t[0]!==winnerName){ gr[g][t[0]]=r; r++; }
+    });
+  });
+
+  // Build t3 object from 3rd place inputs
+  var t3={};
+  T3_GROUPS.forEach(function(g){ t3[g]=null; });
+  for(var i=1;i<=8;i++){
+    var el=document.getElementById('me3rd-'+i);
+    var v=el?el.value.trim().toUpperCase():'';
+    if(v&&T3_GROUPS.indexOf(v)>=0) t3[v]=i;
+  }
+
+  // Build minimal bracket with champion
+  var bkt={r32:{},r16:{},qf:{},sf:{},third:null,champ:champ.trim()};
+
+  var data={
+    v:3,
+    name:name.trim(),
+    gr:gr,
+    t3:t3,
+    bkt:bkt,
+    ts:new Date().toISOString(),
+    score:0,
+    manualEntry:true
+  };
+
+  // Check for duplicate
+  var existing=SUBS.findIndex(function(s){return s.name.toLowerCase()===name.trim().toLowerCase();});
+  var isUpdate=existing>=0;
+  if(isUpdate){
+    if(!confirm(name+' already has a submission. Replace it?')) return;
+    SUBS[existing]=data;
+  } else {
+    SUBS.push(data);
+  }
+
+  // Save to Firebase if connected
+  if(db){
+    db.collection('wc2026_amst_submissions').doc(data.name).set(data)
+      .then(function(){
+        showMeMsg((isUpdate?'Updated':'Added')+' '+data.name+' successfully!','ok');
+        clearManualForm();
+        renderSubs();
+      })
+      .catch(function(e){
+        console.warn('Firebase save error:',e);
+        saveSubsLocal();
+        showMeMsg((isUpdate?'Updated':'Added')+' '+data.name+' (local only)','ok');
+        clearManualForm();
+        renderSubs();
+      });
+  } else {
+    saveSubsLocal();
+    showMeMsg((isUpdate?'Updated':'Added')+' '+data.name+' successfully!','ok');
+    clearManualForm();
+    renderSubs();
+  }
+}
+
+function saveSubsLocal(){
+  try{localStorage.setItem('wc26subs',JSON.stringify(SUBS));}catch(e){}
+}
+
+function clearManualForm(){
+  var fields=['meName','meChamp','meR32','meR16','meQF','meSF'];
+  fields.forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  GK.forEach(function(g){var s=document.getElementById('meg-'+g);if(s)s.value='';});
+  for(var i=1;i<=8;i++){var e=document.getElementById('me3rd-'+i);if(e)e.value='';}
+  var msg=document.getElementById('meMsg');if(msg)msg.style.display='none';
+}
+
+function showMeMsg(msg,type){
+  var el=document.getElementById('meMsg');
+  if(!el)return;
+  el.style.display='block';
+  el.style.color=type==="ok"?"var(--mex-green)":"var(--usa-red)";
+  el.textContent=type==='ok'?'✅ '+msg:'⚠ '+msg;
+}
+
 function buildAdminUI(){
   var gg=document.getElementById('resggroups');
   if(gg) GK.forEach(function(g){
@@ -2235,6 +2411,7 @@ function buildAdminUI(){
   if(qfg) for(var i=1;i<=4;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>QF Winner #'+i+'</label><input type="text" id="aqf-'+i+'" placeholder="Team name...">';qfg.appendChild(d);}
   var sfg=document.getElementById('ressf');
   if(sfg) for(var i=1;i<=2;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>SF Winner #'+i+'</label><input type="text" id="asf-'+i+'" placeholder="Team name...">';sfg.appendChild(d);}
+  buildManualEntryUI();
   loadAdmin();
 }
 
@@ -2288,6 +2465,31 @@ function clearSubs(){
   SUBS=[];localStorage.removeItem('wc26subs');renderSubs();
 }
 
+function loadSubIntoForm(i){
+  var s=SUBS[i];if(!s)return;
+  var ni=document.getElementById('meName');if(ni)ni.value=s.name;
+  var ci=document.getElementById('meChamp');if(ci)ci.value=s.bkt&&s.bkt.champ?s.bkt.champ:'';
+  // Load group winners
+  GK.forEach(function(g){
+    var sel=document.getElementById('meg-'+g);if(!sel)return;
+    if(s.gr&&s.gr[g]){
+      var teams=GRP[g];
+      teams.forEach(function(t){if(s.gr[g][t[0]]===1)sel.value=t[0];});
+    }
+  });
+  // Load 3rd place
+  var t3arr=[];
+  T3_GROUPS.forEach(function(g){if(s.t3&&s.t3[g]!==null&&s.t3[g]!==undefined)t3arr.push({g:g,r:s.t3[g]});});
+  t3arr.sort(function(a,b){return a.r-b.r;});
+  t3arr.forEach(function(item,idx){
+    var el=document.getElementById('me3rd-'+(idx+1));if(el)el.value=item.g;
+  });
+  // Scroll to form
+  var form=document.getElementById('meGroupsGrid');
+  if(form)form.scrollIntoView({behavior:'smooth',block:'center'});
+  showMeMsg('Loaded '+s.name+' — make changes and hit Save','ok');
+  toast('Editing '+s.name+' — scroll up to the form');
+}
 function removeSub(i){
   var sname=SUBS[i]?SUBS[i].name:null;
   SUBS.splice(i,1);
@@ -2343,7 +2545,13 @@ function renderSubs(){
     rmBtn.className='btn bout bsm';
     rmBtn.textContent='Remove';
     rmBtn.onclick=(function(idx){return function(e){e.stopPropagation();removeSub(idx);};})(i);
+    var editBtn=document.createElement('button');
+    editBtn.className='btn bgld bsm';
+    editBtn.textContent='Edit';
+    editBtn.style.marginLeft='4px';
+    editBtn.onclick=(function(idx){return function(e){e.stopPropagation();loadSubIntoForm(idx);};})(i);
     td6.appendChild(rmBtn);
+    td6.appendChild(editBtn);
     tr.appendChild(td1);
     tr.appendChild(td2);
     tr.appendChild(td3);
