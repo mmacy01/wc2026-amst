@@ -752,9 +752,7 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
     <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:12px 0 8px">3rd Place Qualifiers — Enter group letters of top 8 (e.g. A, B, C...)</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:14px" id="me3rdGrid"></div>
 
-    <!-- Bracket picks summary -->
-    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Knockout Picks (optional — enter team names)</div>
-    <div class="resgrid" id="meKnockoutGrid"></div>
+
 
     <div class="brow" style="margin-top:14px">
       <button class="btn bgld" onclick="manualAddSub()">💾 Save Submission</button>
@@ -2290,21 +2288,7 @@ function buildManualEntryUI(){
     }
   }
 
-  // Knockout picks
-  var kg=document.getElementById('meKnockoutGrid');
-  if(kg){
-    var rounds=[
-      {id:'meR32',lbl:'R32 Winner (example pick)'},
-      {id:'meR16',lbl:'R16 Winner (example pick)'},
-      {id:'meQF', lbl:'QF Winner (example pick)'},
-      {id:'meSF', lbl:'SF Winner (example pick)'},
-    ];
-    rounds.forEach(function(r){
-      var d=document.createElement('div');d.className='resfield';
-      d.innerHTML='<label>'+r.lbl+'</label><input type="text" id="'+r.id+'" placeholder="Team name...">';
-      kg.appendChild(d);
-    });
-  }
+
 }
 
 function manualAddSub(){
@@ -2393,7 +2377,7 @@ function saveSubsLocal(){
 }
 
 function clearManualForm(){
-  var fields=['meName','meChamp','meR32','meR16','meQF','meSF'];
+  var fields=['meName','meChamp'];
   fields.forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
   GK.forEach(function(g){
     var s1=document.getElementById('meg1-'+g);if(s1)s1.value='';
