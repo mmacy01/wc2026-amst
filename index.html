@@ -745,8 +745,8 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
     </div>
 
     <!-- Group Rankings -->
-    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Group Stage Rankings — Who wins each group?</div>
-    <div class="resgrid" id="meGroupsGrid"></div>
+    <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Group Stage Rankings — 1st &amp; 2nd place per group</div>
+    <div id="meGroupsGrid"></div>
 
     <!-- 3rd Place -->
     <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin:12px 0 8px">3rd Place Qualifiers — Enter group letters of top 8 (e.g. A, B, C...)</div>
@@ -2249,15 +2249,33 @@ function updateAutoStatus(state, msg) {
 
 // ── MANUAL SUBMISSION ENTRY ──
 function buildManualEntryUI(){
-  // Group winner dropdowns (one per group)
+  // Group 1st + 2nd place dropdowns (two per group)
   var gg=document.getElementById('meGroupsGrid');
   if(gg){
+    gg.style.display='grid';
+    gg.style.gridTemplateColumns='repeat(auto-fill,minmax(300px,1fr))';
+    gg.style.gap='10px';
+    gg.style.marginBottom='12px';
     GK.forEach(function(g){
-      var d=document.createElement('div');d.className='resfield';
       var teams=GRP[g];
-      var opts='<option value="">-- Pick winner --</option>';
-      teams.forEach(function(t){opts+='<option value="'+t[0]+'">'+t[1]+' '+t[0]+'</option>';});
-      d.innerHTML='<label>Group '+g+' Winner</label><select id="meg-'+g+'" style="width:100%;border:1.5px solid var(--border);border-radius:4px;padding:6px 8px;font-size:13px;background:#fafaf8;outline:none">'+opts+'</select>';
+      var opts1='<option value="">-- 1st place --</option>';
+      var opts2='<option value="">-- 2nd place --</option>';
+      teams.forEach(function(t){
+        opts1+='<option value="'+t[0]+'">'+t[1]+' '+t[0]+'</option>';
+        opts2+='<option value="'+t[0]+'">'+t[1]+' '+t[0]+'</option>';
+      });
+      var d=document.createElement('div');
+      d.className='resfield';
+      d.style.borderColor='var(--border)';
+      d.innerHTML='<label style="color:var(--gold);font-size:11px">Group '+g+'</label>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">'+
+        '<select id="meg1-'+g+'" style="border:1.5px solid var(--gold);border-radius:4px;padding:5px 6px;font-size:11px;background:#fffbe8;outline:none" title="1st place">'+opts1+'</select>'+
+        '<select id="meg2-'+g+'" style="border:1.5px solid var(--silver);border-radius:4px;padding:5px 6px;font-size:11px;background:#f8f8f8;outline:none" title="2nd place">'+opts2+'</select>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px">'+
+        '<div style="font-size:9px;text-align:center;color:var(--gold);font-family:Barlow Condensed,sans-serif;letter-spacing:1px">1ST PLACE</div>'+
+        '<div style="font-size:9px;text-align:center;color:var(--silver);font-family:Barlow Condensed,sans-serif;letter-spacing:1px">2ND PLACE</div>'+
+        '</div>';
       gg.appendChild(d);
     });
   }
@@ -2295,22 +2313,22 @@ function manualAddSub(){
   if(!name.trim()){showMeMsg('Enter a participant name','error');return;}
   if(!champ.trim()){showMeMsg('Enter a champion pick','error');return;}
 
-  // Build gr object from group winner dropdowns
+  // Build gr object from 1st + 2nd place dropdowns
   var gr={};
   GK.forEach(function(g){
-    var sel=document.getElementById('meg-'+g);
-    var winnerName=sel?sel.value:'';
-    if(!winnerName) return;
+    var sel1=document.getElementById('meg1-'+g);
+    var sel2=document.getElementById('meg2-'+g);
+    var first=sel1?sel1.value:'';
+    var second=sel2?sel2.value:'';
+    if(!first) return;
     gr[g]={};
     var teams=GRP[g];
-    // Assign ranks: winner=1, others get 2,3,4
-    var rank=1;
+    var used={};
+    if(first)  { gr[g][first]=1;  used[first]=true; }
+    if(second && second!==first) { gr[g][second]=2; used[second]=true; }
+    var r=second?3:2;
     teams.forEach(function(t){
-      if(t[0]===winnerName){ gr[g][t[0]]=1; }
-    });
-    var r=2;
-    teams.forEach(function(t){
-      if(t[0]!==winnerName){ gr[g][t[0]]=r; r++; }
+      if(!used[t[0]]){ gr[g][t[0]]=r; r++; }
     });
   });
 
@@ -2377,7 +2395,10 @@ function saveSubsLocal(){
 function clearManualForm(){
   var fields=['meName','meChamp','meR32','meR16','meQF','meSF'];
   fields.forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  GK.forEach(function(g){var s=document.getElementById('meg-'+g);if(s)s.value='';});
+  GK.forEach(function(g){
+    var s1=document.getElementById('meg1-'+g);if(s1)s1.value='';
+    var s2=document.getElementById('meg2-'+g);if(s2)s2.value='';
+  });
   for(var i=1;i<=8;i++){var e=document.getElementById('me3rd-'+i);if(e)e.value='';}
   var msg=document.getElementById('meMsg');if(msg)msg.style.display='none';
 }
@@ -2469,12 +2490,17 @@ function loadSubIntoForm(i){
   var s=SUBS[i];if(!s)return;
   var ni=document.getElementById('meName');if(ni)ni.value=s.name;
   var ci=document.getElementById('meChamp');if(ci)ci.value=s.bkt&&s.bkt.champ?s.bkt.champ:'';
-  // Load group winners
+  // Load group 1st and 2nd place
   GK.forEach(function(g){
-    var sel=document.getElementById('meg-'+g);if(!sel)return;
+    var sel1=document.getElementById('meg1-'+g);
+    var sel2=document.getElementById('meg2-'+g);
+    if(!sel1||!sel2) return;
     if(s.gr&&s.gr[g]){
       var teams=GRP[g];
-      teams.forEach(function(t){if(s.gr[g][t[0]]===1)sel.value=t[0];});
+      teams.forEach(function(t){
+        if(s.gr[g][t[0]]===1) sel1.value=t[0];
+        if(s.gr[g][t[0]]===2) sel2.value=t[0];
+      });
     }
   });
   // Load 3rd place
