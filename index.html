@@ -833,7 +833,7 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
   </div>
   <div class="brow">
     <button class="btn bgld" onclick="calcScores()">🔢 Calculate Scores</button>
-    <button class="btn bblk" onclick="saveRes()">💾 Save Results</button>
+    <button class="btn bblk" onclick="saveRes();calcScores();">💾 Save Results</button>
   </div>
 </div>
 
@@ -940,7 +940,11 @@ function updateFbStatus(ok, msg) {
 }
 
 function startRealtimeListener() {
-  if(!db) return;
+  if(!db){
+    // Firebase not ready yet - retry shortly
+    setTimeout(startRealtimeListener, 500);
+    return;
+  }
   if(subsListener) { subsListener(); subsListener=null; }
   subsListener = db.collection("wc2026_amst_submissions")
     .onSnapshot(function(snapshot){
@@ -1504,14 +1508,14 @@ function applyLockState(){
   var ni=document.getElementById('pname');
   if(ni) ni.disabled=locked;
 }
-window.onload=function(){buildGroups();buildThird();buildAdminUI();loadDraft();updateProg();initFirebase();applyLockState();};
+window.onload=function(){buildGroups();buildThird();buildAdminUI();loadDraft();updateProg();initFirebase();applyLockState();startRealtimeListener();};
 
 function goPage(id,btn){
   document.querySelectorAll('.pg').forEach(function(p){p.classList.remove('on');});
   document.querySelectorAll('.nav button').forEach(function(b){b.classList.remove('on');});
   document.getElementById('pg-'+id).classList.add('on');
   btn.classList.add('on');
-  if(id==='lb') renderLB();
+  if(id==='lb'){ startRealtimeListener(); renderLB(); }
   if(id==='admin'){ startRealtimeListener(); startAutoScoring(); }
 }
 
