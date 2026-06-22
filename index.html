@@ -840,7 +840,7 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
 <!-- LEADERBOARD -->
 <div id="pg-lb" class="pg">
   <div class="stitle">🏆 Leaderboard</div>
-  <p class="sdesc">Scores update automatically every 30 minutes as matches finish. No manual input needed.</p>
+  <p class="sdesc">Standings update after the admin enters results and clicks Calculate Scores.</p>
   <div id="podwrap" style="display:none"><div class="podium" id="podium"></div><hr class="dv"></div>
   <div id="lbempty" style="text-align:center;padding:44px;color:var(--muted);font-family:Barlow Condensed,sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase">⚽ No submissions yet — go make your picks!</div>
   <div class="lbcard" id="lbcard" style="display:none"></div>
@@ -1596,8 +1596,6 @@ function onT3Change(){
     if(v) cnt[v]=(cnt[v]||0)+1;
     ST.t3[g]=v?parseInt(v):null;
   });
-  // Group D is never a 3rd place team
-  ST.t3['D']=null;
   var dupe=Object.values(cnt).some(function(c){return c>1;});
   var total=T3_GROUPS.filter(function(g){return ST.t3[g]!==null;}).length;
   T3_GROUPS.forEach(function(g){
@@ -2573,6 +2571,9 @@ function mEPickChamp(name){
 function manualSaveSub(){
   var name=(document.getElementById('meName')||{}).value||'';
   if(!name.trim()){showMeMsg('Enter participant name','error');return;}
+  // Sync the Champion text field into ME.bkt.champ (in case it wasn't set via bracket click)
+  var champField=(document.getElementById('meChamp')||{}).value||'';
+  if(champField.trim()) ME.bkt.champ=champField.trim();
   if(!ME.bkt.champ){
     if(!confirm('No champion selected yet. Save anyway?'))return;
   }
@@ -2683,17 +2684,6 @@ function saveSubsLocal(){
   try{localStorage.setItem('wc26subs',JSON.stringify(SUBS));}catch(e){}
 }
 
-function clearManualForm(){
-  var fields=['meName','meChamp'];
-  fields.forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  GK.forEach(function(g){
-    var s1=document.getElementById('meg1-'+g);if(s1)s1.value='';
-    var s2=document.getElementById('meg2-'+g);if(s2)s2.value='';
-  });
-  for(var i=1;i<=8;i++){var e=document.getElementById('me3rd-'+i);if(e)e.value='';}
-  var msg=document.getElementById('meMsg');if(msg)msg.style.display='none';
-}
-
 function showMeMsg(msg,type){
   var el=document.getElementById('meMsg');
   if(!el)return;
@@ -2777,36 +2767,6 @@ function clearSubs(){
   SUBS=[];localStorage.removeItem('wc26subs');renderSubs();
 }
 
-function loadSubIntoForm(i){
-  var s=SUBS[i];if(!s)return;
-  var ni=document.getElementById('meName');if(ni)ni.value=s.name;
-  var ci=document.getElementById('meChamp');if(ci)ci.value=s.bkt&&s.bkt.champ?s.bkt.champ:'';
-  // Load group 1st and 2nd place
-  GK.forEach(function(g){
-    var sel1=document.getElementById('meg1-'+g);
-    var sel2=document.getElementById('meg2-'+g);
-    if(!sel1||!sel2) return;
-    if(s.gr&&s.gr[g]){
-      var teams=GRP[g];
-      teams.forEach(function(t){
-        if(s.gr[g][t[0]]===1) sel1.value=t[0];
-        if(s.gr[g][t[0]]===2) sel2.value=t[0];
-      });
-    }
-  });
-  // Load 3rd place
-  var t3arr=[];
-  T3_GROUPS.forEach(function(g){if(s.t3&&s.t3[g]!==null&&s.t3[g]!==undefined)t3arr.push({g:g,r:s.t3[g]});});
-  t3arr.sort(function(a,b){return a.r-b.r;});
-  t3arr.forEach(function(item,idx){
-    var el=document.getElementById('me3rd-'+(idx+1));if(el)el.value=item.g;
-  });
-  // Scroll to form
-  var form=document.getElementById('meGroupsGrid');
-  if(form)form.scrollIntoView({behavior:'smooth',block:'center'});
-  showMeMsg('Loaded '+s.name+' — make changes and hit Save','ok');
-  toast('Editing '+s.name+' — scroll up to the form');
-}
 function removeSub(i){
   var sname=SUBS[i]?SUBS[i].name:null;
   SUBS.splice(i,1);
