@@ -2504,11 +2504,34 @@ function saveRes(){
       var e=document.getElementById('r3-'+i);if(e)r['t'+i]=e.value;
       var et=document.getElementById('r3team-'+i);if(et)r['tt'+i]=et.value;
     }
+    for(var i=1;i<=16;i++){var e=document.getElementById('ar32-'+i);if(e)r['r32-'+i]=e.value;}
+    for(var i=1;i<=8;i++){var e=document.getElementById('ar16-'+i);if(e)r['r16-'+i]=e.value;}
+    for(var i=1;i<=4;i++){var e=document.getElementById('aqf-'+i);if(e)r['qf-'+i]=e.value;}
+    for(var i=1;i<=2;i++){var e=document.getElementById('asf-'+i);if(e)r['sf-'+i]=e.value;}
     var t=document.getElementById('resthird');if(t)r['tp']=t.value;
     var c=document.getElementById('reschamp');if(c)r['ch']=c.value;
     localStorage.setItem('wc26res',JSON.stringify(r));
+    if(db){
+      db.collection('wc2026_amst_meta').doc('results').set(r)
+        .catch(function(e){console.warn('Results sync failed:',e);});
+    }
     toast('Results saved');
   }catch(e){}
+}
+
+function applyResultsToForm(r){
+  if(!r) return;
+  GK.forEach(function(g){var e=document.getElementById('rg-'+g);if(e&&r['g'+g])e.value=r['g'+g];});
+  for(var i=1;i<=8;i++){
+    var e=document.getElementById('r3-'+i);if(e&&r['t'+i])e.value=r['t'+i];
+    var et=document.getElementById('r3team-'+i);if(et&&r['tt'+i])et.value=r['tt'+i];
+  }
+  for(var i=1;i<=16;i++){var e=document.getElementById('ar32-'+i);if(e&&r['r32-'+i])e.value=r['r32-'+i];}
+  for(var i=1;i<=8;i++){var e=document.getElementById('ar16-'+i);if(e&&r['r16-'+i])e.value=r['r16-'+i];}
+  for(var i=1;i<=4;i++){var e=document.getElementById('aqf-'+i);if(e&&r['qf-'+i])e.value=r['qf-'+i];}
+  for(var i=1;i<=2;i++){var e=document.getElementById('asf-'+i);if(e&&r['sf-'+i])e.value=r['sf-'+i];}
+  var t=document.getElementById('resthird');if(t&&r['tp'])t.value=r['tp'];
+  var c=document.getElementById('reschamp');if(c&&r['ch'])c.value=r['ch'];
 }
 
 function loadAdmin(){
@@ -2516,13 +2539,12 @@ function loadAdmin(){
     var raw=localStorage.getItem('wc26res');
     if(raw){
       var r=JSON.parse(raw);
-      GK.forEach(function(g){var e=document.getElementById('rg-'+g);if(e&&r['g'+g])e.value=r['g'+g];});
-      for(var i=1;i<=8;i++){
-        var e=document.getElementById('r3-'+i);if(e&&r['t'+i])e.value=r['t'+i];
-        var et=document.getElementById('r3team-'+i);if(et&&r['tt'+i])et.value=r['tt'+i];
-      }
-      var t=document.getElementById('resthird');if(t&&r['tp'])t.value=r['tp'];
-    var c=document.getElementById('reschamp');if(c&&r['ch'])c.value=r['ch'];
+      applyResultsToForm(r);
+    }
+    if(db){
+      db.collection('wc2026_amst_meta').doc('results').get()
+        .then(function(doc){ if(doc.exists) applyResultsToForm(doc.data()); })
+        .catch(function(e){console.warn('Results fetch failed:',e);});
     }
     if(!db){
       // Only use the stale local cache as a fallback when Firebase isn't connected
