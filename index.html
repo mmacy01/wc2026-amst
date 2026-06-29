@@ -2801,6 +2801,7 @@ function openPlayerModal(idx){
   // ── SCORE BREAKDOWN ──
   var actualGW=getActualGW();
   var actual3rd=getActual3rd();
+  var actual3rdTeams=getActual3rdTeams();
   var ach=getActualChamp();
   var actualR32=getActualRound('ar32',16);
   var actualR16=getActualRound('ar16',8);
@@ -2815,7 +2816,16 @@ function openPlayerModal(idx){
     if(s.gr&&s.gr[g]) teams.forEach(function(t){if(s.gr[g][t[0]]===1)pred=t[0].toLowerCase();});
     if(pred===actual) gwPts+=1;
   });
-  T3_GROUPS.forEach(function(g){if(s.t3&&s.t3[g]!==null&&s.t3[g]!==undefined&&actual3rd.has(g))t3Pts+=2;});
+  T3_GROUPS.forEach(function(g){
+    if(!(s.t3&&s.t3[g]!==null&&s.t3[g]!==undefined&&actual3rd.has(g))) return;
+    var reqTeam=actual3rdTeams[g];
+    if(reqTeam){
+      var teams=GRP[g];var playerPick=null;
+      if(s.gr&&s.gr[g]) teams.forEach(function(t){if(s.gr[g][t[0]]===3)playerPick=t[0].toLowerCase();});
+      if(playerPick!==reqTeam) return;
+    }
+    t3Pts+=2;
+  });
   if(s.bkt&&s.bkt.r32) Object.values(s.bkt.r32).forEach(function(t){if(actualR32.indexOf(t.toLowerCase())>=0)r32Pts+=3;});
   if(s.bkt&&s.bkt.r16) Object.values(s.bkt.r16).forEach(function(t){if(actualR16.indexOf(t.toLowerCase())>=0)r16Pts+=5;});
   if(s.bkt&&s.bkt.qf)  Object.values(s.bkt.qf).forEach(function(t){if(actualQF.indexOf(t.toLowerCase())>=0)qfPts+=7;});
@@ -2888,8 +2898,16 @@ function openPlayerModal(idx){
   if(t3picked.length===0){t3Html+='<span style="color:var(--muted);font-size:12px">No picks made</span>';}
   t3picked.forEach(function(g){
     var t=getByRank(g,3);
-    var correct=actual3rd.size>0&&actual3rd.has(g);
-    var wrong=actual3rd.size>0&&!actual3rd.has(g);
+    var groupQualifies=actual3rd.size>0&&actual3rd.has(g);
+    var reqTeamForChip=actual3rdTeams[g];
+    var teamMatches=true;
+    if(groupQualifies&&reqTeamForChip){
+      var chipTeams=GRP[g];var chipPlayerPick=null;
+      if(s.gr&&s.gr[g]) chipTeams.forEach(function(t){if(s.gr[g][t[0]]===3)chipPlayerPick=t[0].toLowerCase();});
+      teamMatches=(chipPlayerPick===reqTeamForChip);
+    }
+    var correct=groupQualifies&&teamMatches;
+    var wrong=actual3rd.size>0&&(!groupQualifies||!teamMatches);
     t3Html+='<div class="t3-chip'+(correct?' correct':wrong?' wrong':'')+'">'+
       '<span class="rk">'+s.t3[g]+'</span>'+
       (t?t[1]+' '+t[0]:'Group '+g)+
@@ -2968,6 +2986,17 @@ function getActual3rd(){
   var s=new Set();
   for(var i=1;i<=8;i++){var e=document.getElementById('r3-'+i);if(e&&e.value.trim())s.add(e.value.trim().toUpperCase());}
   return s;
+}
+function getActual3rdTeams(){
+  var m={};
+  for(var i=1;i<=8;i++){
+    var e=document.getElementById('r3-'+i);
+    var et=document.getElementById('r3team-'+i);
+    if(e&&e.value.trim()&&et&&et.value.trim()){
+      m[e.value.trim().toUpperCase()]=et.value.trim().toLowerCase();
+    }
+  }
+  return m;
 }
 function getActualChamp(){
   var e=document.getElementById('reschamp');return e?e.value.trim().toLowerCase():'';
