@@ -1,6 +1,6 @@
 # ⚽ FIFA World Cup 2026 — AmSty Predictor Challenge
 
-Live site: **https://YOUR-GITHUB-USERNAME.github.io/wc2026-amst/**
+Live site: **https://mmacy01.github.io/wc2026-amst/**
 
 ---
 
