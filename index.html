@@ -821,11 +821,11 @@ hr.dv{border:none;border-top:2px solid var(--border);margin:20px 0}
   </div>
   <div style="background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px">
     <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">3rd Place Match Winner (8pts)</div>
-    <div class="resfield" style="max-width:280px"><label>3rd Place Winner</label><input type="text" id="resthird" placeholder="Team name..."></div>
+    <div class="resfield" style="max-width:280px"><label>3rd Place Winner</label><input type="text" id="resthird" placeholder="Team name..." oninput="saveRes()"></div>
   </div>
   <div style="background:var(--card);border:1.5px solid var(--border);border-radius:7px;padding:14px;margin-bottom:12px">
     <div style="font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">Champion (15pts + 10 bonus)</div>
-    <div class="resfield" style="max-width:280px"><label>World Cup Champion</label><input type="text" id="reschamp" placeholder="Winning team name..."></div>
+    <div class="resfield" style="max-width:280px"><label>World Cup Champion</label><input type="text" id="reschamp" placeholder="Winning team name..." oninput="saveRes()"></div>
   </div>
   <div class="brow">
     <button class="btn bgld" onclick="calcScores()">🔢 Calculate Scores</button>
@@ -1556,6 +1556,12 @@ function onGrpRank(g){
 
 function getByRank(g,rank){
   var teams=GRP[g],r=ST.gr[g]||{};
+  for(var i=0;i<teams.length;i++){if(r[teams[i][0]]===rank)return teams[i];}
+  return null;
+}
+
+function getByRankFor(grObj,g,rank){
+  var teams=GRP[g],r=(grObj&&grObj[g])||{};
   for(var i=0;i<teams.length;i++){if(r[teams[i][0]]===rank)return teams[i];}
   return null;
 }
@@ -2471,7 +2477,7 @@ function buildAdminUI(){
   var gg=document.getElementById('resggroups');
   if(gg) GK.forEach(function(g){
     var d=document.createElement('div');d.className='resfield';
-    d.innerHTML='<label>Group '+g+' Winner</label><input type="text" id="rg-'+g+'" placeholder="e.g. Brazil">';
+    d.innerHTML='<label>Group '+g+' Winner</label><input type="text" id="rg-'+g+'" placeholder="e.g. Brazil" oninput="saveRes()">';
     gg.appendChild(d);
   });
   var tg=document.getElementById('resg3rd');
@@ -2479,19 +2485,19 @@ function buildAdminUI(){
     var d=document.createElement('div');d.className='resfield';
     d.innerHTML='<label>3rd Place #'+i+' — Group Letter + Team</label>'+
       '<div style="display:flex;gap:6px">'+
-      '<input type="text" id="r3-'+i+'" placeholder="A-L" maxlength="1" style="width:50px;flex-shrink:0">'+
-      '<input type="text" id="r3team-'+i+'" placeholder="Team that actually finished 3rd" style="flex:1">'+
+      '<input type="text" id="r3-'+i+'" placeholder="A-L" maxlength="1" style="width:50px;flex-shrink:0" oninput="saveRes()">'+
+      '<input type="text" id="r3team-'+i+'" placeholder="Team that actually finished 3rd" style="flex:1" oninput="saveRes()">'+
       '</div>';
     tg.appendChild(d);
   }
   var r32g=document.getElementById('resr32');
-  if(r32g) for(var i=1;i<=16;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>R32 Winner #'+i+'</label><input type="text" id="ar32-'+i+'" placeholder="Team name...">';r32g.appendChild(d);}
+  if(r32g) for(var i=1;i<=16;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>R32 Winner #'+i+'</label><input type="text" id="ar32-'+i+'" placeholder="Team name..." oninput="saveRes()">';r32g.appendChild(d);}
   var r16g=document.getElementById('resr16');
-  if(r16g) for(var i=1;i<=8;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>R16 Winner #'+i+'</label><input type="text" id="ar16-'+i+'" placeholder="Team name...">';r16g.appendChild(d);}
+  if(r16g) for(var i=1;i<=8;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>R16 Winner #'+i+'</label><input type="text" id="ar16-'+i+'" placeholder="Team name..." oninput="saveRes()">';r16g.appendChild(d);}
   var qfg=document.getElementById('resqf');
-  if(qfg) for(var i=1;i<=4;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>QF Winner #'+i+'</label><input type="text" id="aqf-'+i+'" placeholder="Team name...">';qfg.appendChild(d);}
+  if(qfg) for(var i=1;i<=4;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>QF Winner #'+i+'</label><input type="text" id="aqf-'+i+'" placeholder="Team name..." oninput="saveRes()">';qfg.appendChild(d);}
   var sfg=document.getElementById('ressf');
-  if(sfg) for(var i=1;i<=2;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>SF Winner #'+i+'</label><input type="text" id="asf-'+i+'" placeholder="Team name...">';sfg.appendChild(d);}
+  if(sfg) for(var i=1;i<=2;i++){var d=document.createElement('div');d.className='resfield';d.innerHTML='<label>SF Winner #'+i+'</label><input type="text" id="asf-'+i+'" placeholder="Team name..." oninput="saveRes()">';sfg.appendChild(d);}
   buildManualEntryUI();
   loadAdmin();
 }
@@ -2650,8 +2656,84 @@ function renderSubs(){
   });
 }
 
+function detectSuspiciousEmptyFields(){
+  // Compare current DOM input values against the last saved results snapshot.
+  // If a field was previously filled and is now empty, that's a red flag —
+  // likely a page reload that lost data, not an intentional clear.
+  var savedRaw=null;
+  try{ savedRaw=localStorage.getItem('wc26res'); }catch(e){}
+  if(!savedRaw) return [];
+  var saved;
+  try{ saved=JSON.parse(savedRaw); }catch(e){ return []; }
+  if(!saved) return [];
+
+  var warnings=[];
+  GK.forEach(function(g){
+    var e=document.getElementById('rg-'+g);
+    if(saved['g'+g] && saved['g'+g].trim() && (!e || !e.value.trim())){
+      warnings.push('Group '+g+' Winner ("'+saved['g'+g]+'")');
+    }
+  });
+  for(var i=1;i<=8;i++){
+    var e=document.getElementById('r3-'+i);
+    if(saved['t'+i] && saved['t'+i].trim() && (!e || !e.value.trim())){
+      warnings.push('3rd Place #'+i+' group letter ("'+saved['t'+i]+'")');
+    }
+  }
+  for(var i=1;i<=16;i++){
+    var e=document.getElementById('ar32-'+i);
+    if(saved['r32-'+i] && saved['r32-'+i].trim() && (!e || !e.value.trim())){
+      warnings.push('R32 Winner #'+i+' ("'+saved['r32-'+i]+'")');
+    }
+  }
+  for(var i=1;i<=8;i++){
+    var e=document.getElementById('ar16-'+i);
+    if(saved['r16-'+i] && saved['r16-'+i].trim() && (!e || !e.value.trim())){
+      warnings.push('R16 Winner #'+i+' ("'+saved['r16-'+i]+'")');
+    }
+  }
+  for(var i=1;i<=4;i++){
+    var e=document.getElementById('aqf-'+i);
+    if(saved['qf-'+i] && saved['qf-'+i].trim() && (!e || !e.value.trim())){
+      warnings.push('QF Winner #'+i+' ("'+saved['qf-'+i]+'")');
+    }
+  }
+  for(var i=1;i<=2;i++){
+    var e=document.getElementById('asf-'+i);
+    if(saved['sf-'+i] && saved['sf-'+i].trim() && (!e || !e.value.trim())){
+      warnings.push('SF Winner #'+i+' ("'+saved['sf-'+i]+'")');
+    }
+  }
+  var champEl=document.getElementById('reschamp');
+  if(saved['ch'] && saved['ch'].trim() && (!champEl || !champEl.value.trim())){
+    warnings.push('Champion ("'+saved['ch']+'")');
+  }
+  return warnings;
+}
+
 function calcScores(){
   if(!SUBS.length){toast('No submissions to score',true);return;}
+
+  // SAFEGUARD: check if any previously-saved result fields appear to have
+  // gone empty (likely a page reload glitch), before we overwrite every
+  // participant's score based on what's currently in the boxes.
+  var missing=detectSuspiciousEmptyFields();
+  if(missing.length>0){
+    var msg='⚠ WARNING: '+missing.length+' result field(s) that were previously saved now appear EMPTY:\n\n'+
+      missing.slice(0,10).join('\n')+
+      (missing.length>10?'\n...and '+(missing.length-10)+' more':'')+
+      '\n\nThis usually means the page reloaded and lost some data. '+
+      'Calculating scores now will ERASE points tied to these results.\n\n'+
+      'Click OK to reload the saved results first (recommended), or Cancel to proceed anyway with current (possibly incomplete) data.';
+    if(confirm(msg)){
+      // Reload from saved data first, then bail — let Rob review before recalculating
+      loadAdmin();
+      toast('Saved results reloaded — review the fields, then click Calculate Scores again.',true);
+      return;
+    }
+    // else: Rob explicitly chose to proceed anyway — fall through
+  }
+
   var aGW={};
   GK.forEach(function(g){var e=document.getElementById('rg-'+g);if(e&&e.value.trim())aGW[g]=e.value.trim().toLowerCase();});
   var a3rd=new Set();
@@ -2919,7 +3001,7 @@ function openPlayerModal(idx){
   var t3Html='<div class="t3-picks">';
   if(t3picked.length===0){t3Html+='<span style="color:var(--muted);font-size:12px">No picks made</span>';}
   t3picked.forEach(function(g){
-    var t=getByRank(g,3);
+    var t=getByRankFor(s.gr,g,3);
     var groupQualifies=actual3rd.size>0&&actual3rd.has(g);
     var reqTeamForChip=actual3rdTeams[g];
     var teamMatches=true;
